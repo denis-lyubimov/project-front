@@ -173,11 +173,6 @@
         }
 
         function changeImageOnClickEdit(id, name, title, race, profession, level, birthday, banned) {
-            // document.getElementById("editImg" + obj.value).src = "img/save.png";
-            // document.getElementById("buttonDelete" + obj.value).style.visibility="hidden";//"visible"
-            //document.getElementById("buttonDelete" + obj.value).style.display = "none";//"block"
-            // 3 по нажатию на кнопку Save делать айдейт по значениям введенных полей
-            // 4 обновить страницу
 
             //create raceRow string
             let raceRowString = "<td><select name=\"Race"+id+"\" id=\"Race"+id+"\">";
@@ -242,7 +237,6 @@
             getPlayersRequest(pageNumber, pageSize).done(function (jsonArray) {
                 $.each(jsonArray, function (arrayId, jsonObj) {
                     htmlString = htmlString + `<tr id ="tableRaw${jsonObj.id}">
-<!--                        <td><input type="text" id="idId" value="${jsonObj.id}"></td>-->
                         <td id="fieldId${jsonObj.id}" value="${jsonObj.id}">${jsonObj.id}</td>
                         <td id="fieldName${jsonObj.id}" value="${jsonObj.name}">${jsonObj.name}</td>
                         <td id="fieldTitle${jsonObj.id}" value="${jsonObj.title}">${jsonObj.title}</td>
