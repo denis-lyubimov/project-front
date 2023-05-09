@@ -1,11 +1,343 @@
 <html>
 <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=cp1251">
     <title>RPG</title>
     <script src=https://code.jquery.com/jquery-3.6.0.min.js></script>
     <link href="/css/my.css" rel="stylesheet">
+    <script type="text/javascript">
+
+
+        var baseUrl = "http://localhost:8080";
+        var getPlayersQuery = "/rest/players";
+        var getPlayersCountQuery = "/rest/players/count";
+        var deletePlayerQuery = "/rest/players/";
+        var updatePlayerQuery = "/rest/players/";
+        var createPlayerQuery = "/rest/players";
+        var selectedPageNumber = 0;
+        var playersAtCurrentPage = 0;
+
+        // returns array of jsons
+        function getPlayers() {
+            return $.ajax({
+                "url": baseUrl + getPlayersQuery,
+                "method": "GET",
+                "dataType": "json",
+                "timeout": 0,
+                "async": false,
+            });
+        }
+
+        function getPlayersRequest(pageNumber, pageSize) {
+            var scriptUrl = baseUrl + getPlayersQuery + "?pageNumber=" + pageNumber + "&pageSize=" + pageSize;
+            console.log(scriptUrl);
+            return $.ajax({
+                "url": scriptUrl,
+                "method": "GET",
+                "dataType": "json",
+                "timeout": 0,
+                "async": false,
+            });
+        }
+
+        //removes player from list by id
+        function deletePlayerRequest(playerId) {
+            var scriptUrl = baseUrl + deletePlayerQuery + playerId;
+            console.log(scriptUrl);
+            return $.ajax({
+                "url": scriptUrl,
+                "method": "DELETE",
+                "timeout": 0,
+                "async": false,
+            });
+        }
+
+
+        //returns amount of players
+        function getPlayersCountRequest() {
+            var playersCount;
+            $.ajax({
+                url: baseUrl + getPlayersCountQuery,
+                method: "GET",
+                timeout: 0,
+                async: false
+            }).done(function (data) {
+                playersCount = data;
+            });
+            return playersCount;
+        }
+
+        function updatePlayerRequest(id) {
+            var scriptUrl = baseUrl + updatePlayerQuery + id;
+            console.log(scriptUrl);
+            $.ajax({
+                "url": scriptUrl,
+                "method": "POST",
+                "contentType": "application/json;charset=utf-8",
+                // "dataType": "json",
+                "data": JSON.stringify({
+                    "name": document.getElementById("Name"+id).value,
+                    "title": document.getElementById("Title"+id).value,
+                    "race": document.getElementById("Race"+id).value,
+                    "profession": document.getElementById("Profession"+id).value,
+                    "banned": document.getElementById("Banned"+id).value
+                }),
+            });
+            addPlayersNew();
+        }
+
+        function createUserRequest(id) {
+            var scriptUrl = baseUrl + createPlayerQuery;
+            console.log(scriptUrl);
+            $.ajax({
+                "url": scriptUrl,
+                "method": "POST",
+                "contentType": "application/json;charset=utf-8",
+                "data": JSON.stringify({
+                    "name": document.getElementById("createName").value,
+                    "title": document.getElementById("createTitle").value,
+                    "race": document.getElementById("createRace").value,
+                    "profession": document.getElementById("createProfession").value,
+                    "level": document.getElementById("createLevel").value,
+                    "birthday": new Date(document.getElementById("createBirthday").value).getTime(),
+                    "banned": document.getElementById("createBanned").value
+                }),
+            });
+            addPageButtons();
+            setPageNumberColor(selectedPageNumber,selectedPageNumber);
+            addPlayersNew();
+        }
+
+        //returnts tables raws selected value
+        function getPlayersPerPage() {
+            return $("#countPerPage :selected").attr("value");
+        }
+
+        //returnts selected page number
+        function setPageNumberColor(currentPageNumber, previousPageNumber) {
+            document.getElementById("page" + previousPageNumber).style.color = "#000000";
+            document.getElementById("page" + currentPageNumber).style.color = "red";
+        }
+
+        function setPageNumberByValue(obj) {
+            setPageNumberColor(obj.value, selectedPageNumber);
+            selectedPageNumber = obj.value;
+            addPlayersNew();
+        }
+
+        //creates page buttons
+        function addPageButtons() {
+            var htmlString = "Pages:";
+            var playersCount = getPlayersCountRequest();
+            var playersPerPage = getPlayersPerPage();
+            var pagesCount = Math.ceil(playersCount / playersPerPage);
+            for (let i = 0; i < pagesCount; i++) {
+                htmlString = htmlString.concat("<button id=\"" + ("page" + i) + "\" value=\"" + i + "\" onClick=\"setPageNumberByValue(this)\">" + (i + 1) + "</button>");
+            }
+            // добавить выделение выбранной кнопки
+            $("#pageButtons").html(htmlString);
+        }
+
+        function changePlayersPerPage() {
+            selectedPageNumber = 0;
+            // поменять выделенную кнопку на первую,
+            addPageButtons();
+            setPageNumberColor(0, 0);
+            addPlayersNew();
+        }
+
+
+        // creates <select> values 3-20
+        function addPlayersPerPageSelector() {
+            var htmlString = "";
+            for (let i = 3; i < 21; i++) {
+                htmlString = htmlString.concat("<option id=\"" + ("sel" + i) + "\" value=\"" + i + "\">" + i + "</option>");
+            }
+            $("#countPerPage").html(htmlString);
+        }
+
+
+        // removes player by id and renews table
+        function removePlayer(playerId) {
+            if (getTableRawsCount() === 1 & selectedPageNumber != 1) {
+                selectedPageNumber = selectedPageNumber - 1;
+            }
+            deletePlayerRequest(playerId);
+            addPlayersNew();
+            addPageButtons();
+            setPageNumberColor(selectedPageNumber, selectedPageNumber);
+        }
+
+        function getTableRawsCount() {
+            var tableRaws = document.getElementById("table1").getElementsByTagName("tr");
+            return tableRaws.length - 1;
+        }
+
+        function changeImageOnClickEdit(id, name, title, race, profession, level, birthday, banned) {
+            // document.getElementById("editImg" + obj.value).src = "img/save.png";
+            // document.getElementById("buttonDelete" + obj.value).style.visibility="hidden";//"visible"
+            //document.getElementById("buttonDelete" + obj.value).style.display = "none";//"block"
+            // 3 по нажатию на кнопку Save делать айдейт по значениям введенных полей
+            // 4 обновить страницу
+
+            //create raceRow string
+            let raceRowString = "<td><select name=\"Race"+id+"\" id=\"Race"+id+"\">";
+            let raceArray = ["HUMAN", "DWARF", "ELF", "GIANT", "ORC", "TROLL", "HOBBIT"];
+            for (let i = 0; i < raceArray.length; i++) {
+                if (race != raceArray[i]) {
+                    raceRowString = raceRowString.concat("<option id=\"" + raceArray[i] + "\" value=\"" + raceArray[i] + "\">" + raceArray[i] + "</option>");
+                    continue;
+                }
+                raceRowString = raceRowString.concat("<option id=\"" + raceArray[i] + "\" value=\"" + raceArray[i] + "\" selected>" + raceArray[i] + "</option>");
+            }
+            raceRowString = raceRowString.concat("</td>");
+
+            //create professionRow string
+            let professionRowString = "<td><select name=\"Profession"+id+"\" id=\"Profession"+id+"\">";
+            let professionArray = ["WARRIOR", "ROGUE", "SORCERER", "CLERIC", "PALADIN", "NAZGUL", "WARLOCK", "DRUID"];
+            for (let i = 0; i < professionArray.length; i++) {
+                if (profession != professionArray[i]) {
+                    professionRowString = professionRowString.concat("<option id=\"" + professionArray[i] + "\" value=\"" + professionArray[i] + "\">" + professionArray[i] + "</option>");
+                    continue;
+                }
+                professionRowString = professionRowString.concat("<option id=\"" + professionArray[i] + "\" value=\"" + professionArray[i] + "\" selected>" + professionArray[i] + "</option>");
+            }
+            professionRowString = professionRowString.concat("</td>");
+
+            //create bannedRow string
+            let bannedRowString = "<td><select name=\"Banned"+id+"\" id=\"Banned"+id+"\">";
+            let bannedArray = ["true", "false"];
+            for (let i = 0; i < bannedArray.length; i++) {
+                if (banned != bannedArray[i]) {
+                    bannedRowString = bannedRowString.concat("<option id=\"" + bannedArray[i] + "\" value=\"" + bannedArray[i] + "\">" + bannedArray[i] + "</option>");
+                    continue;
+                }
+                bannedRowString = bannedRowString.concat("<option id=\"" + bannedArray[i] + "\" value=\"" + bannedArray[i] + "\" selected>" + bannedArray[i] + "</option>");
+            }
+            bannedRowString = bannedRowString.concat("</td>");
+
+            //create updatable row
+            let htmlString = `<tr id ="tableRaw${id}">
+                        <td id="Id${id}" value="${id}">${id}</td>
+                        <td><input type="text" id="Name${id}" value="${name}"></td>
+                        <td><input type="text" id="Title${id}" value="${title}"></td>
+                        ${raceRowString}
+                        ${professionRowString}
+                        <td id="Level${id}" value="${level}">${level}</td>
+                        <td id="Birthday${id}" value="${birthday}">${new Date(birthday).toLocaleString()}</td>
+                        ${bannedRowString}
+                        <td><button id = "buttonEdit${id}" value = "${id}"
+                            onclick="updatePlayerRequest(${id})">
+                            <img id="editImg1${id}" src="img/save.png"></button>
+                        </td>
+                        <td><button id = "buttonDelete${id}" value = "${id}" onclick="removePlayer(this.value)" style="visibility: hidden"><img id="deleteImg${id}" src="img/delete.png"></button></td>
+                        </tr>`;
+            $("#tableRaw" + id).replaceWith(htmlString);
+        }
+
+
+        function addPlayersNew() {
+            var pageSize = getPlayersPerPage();
+            var pageNumber = selectedPageNumber;
+            var htmlString = "";
+            getPlayersRequest(pageNumber, pageSize).done(function (jsonArray) {
+                $.each(jsonArray, function (arrayId, jsonObj) {
+                    htmlString = htmlString + `<tr id ="tableRaw${jsonObj.id}">
+<!--                        <td><input type="text" id="idId" value="${jsonObj.id}"></td>-->
+                        <td id="fieldId${jsonObj.id}" value="${jsonObj.id}">${jsonObj.id}</td>
+                        <td id="fieldName${jsonObj.id}" value="${jsonObj.name}">${jsonObj.name}</td>
+                        <td id="fieldTitle${jsonObj.id}" value="${jsonObj.title}">${jsonObj.title}</td>
+                        <td id="fieldRace${jsonObj.id}" value="${jsonObj.race}">${jsonObj.race}</td>
+                        <td id="fieldProfession${jsonObj.id}" value="${jsonObj.profession}">${jsonObj.profession}</td>
+                        <td id="fieldLevel${jsonObj.id}" value="${jsonObj.level}">${jsonObj.level}</td>
+                        <td id="fieldBirthday${jsonObj.id}" value="${jsonObj.birthday}">${new Date(jsonObj.birthday).toLocaleString()}</td>
+                        <td id="fieldBanned${jsonObj.id}" value="${jsonObj.banned}">${jsonObj.banned}</td>
+                        <td><button id = "buttonEdit${jsonObj.id}" value = "${jsonObj.id}"
+                            onclick="changeImageOnClickEdit(${jsonObj.id},'${jsonObj.name}','${jsonObj.title}','${jsonObj.race}','${jsonObj.profession}',${jsonObj.level},${jsonObj.birthday},'${jsonObj.banned}')">
+                            <img id="editImg${jsonObj.id}" src="img/edit.png"></button>
+                        </td>
+                        <td><button id = "buttonDelete${jsonObj.id}" value = "${jsonObj.id}" onclick="removePlayer(this.value)"><img id="deleteImg${jsonObj.id}"src="img/delete.png"></button></td>
+                        </tr>`;
+                });
+            });
+            $("#tablebody1").html(htmlString);
+        }
+
+        function fillHtml() {
+            addPlayersPerPageSelector();
+            addPageButtons();
+            setPageNumberColor(0, 0);
+            addPlayersNew();
+        }
+
+        // $(document).ready(getPlayers());
+        window.onload = fillHtml;
+
+        function button1() {
+           ;
+        }
+    </script>
 </head>
+
 <body>
 <h1>RPG admin panel</h1>
+<h2>Accounts list:</h2>
+<div>Count per page:
+    <select id="countPerPage" size="1" onchange="changePlayersPerPage()"></select>
+</div>
+<table id="table1">
+    <thread>
+        <tr>
+            <th>#</th>
+            <th>Name</th>
+            <th>Title</th>
+            <th>Race</th>
+            <th>Profession</th>
+            <th>Level</th>
+            <th>Birthday</th>
+            <th>Banned</th>
+            <th>Edit</th>
+            <th>Delete</th>
+        </tr>
+    </thread>
+    <tbody id="tablebody1"></tbody>
+</table>
+<div id="pageButtons">Pages:
+</div>
+<hr>
+<h2>Create new user:</h2>
+<div id="createUserBlock">
+    Name: <input type="text" minlength="1" maxlength="12" id="createName" value=""><br>
+    Title: <input type="text" minlength="1" maxlength="30" id="createTitle" value=""><br>
+    Race: <select name="createRace" id="createRace">
+        <option value="HUMAN">HUMAN</option>
+        <option value="DWARF">DWARF</option>
+        <option value="GIANT">GIANT</option>
+        <option value="ORC">ORC</option>
+        <option value="TROLL">TROLL</option>
+        <option value="HOBBIT">HOBBIT</option>
+        <option value="ELF">ELF</option>
+    </select><br>
+    Profession: <select name="createProfession" id="createProfession">
+    <option value="WARRIOR">WARRIOR</option>
+    <option value="ROGUE">ROGUE</option>
+    <option value="SORCERER">SORCERER</option>
+    <option value="CLERIC">CLERIC</option>
+    <option value="PALADIN">PALADIN</option>
+    <option value="NAZGUL">NAZGUL</option>
+    <option value="WARLOCK">WARLOCK</option>
+    <option value="DRUID">DRUID</option>
+    </select><br>
+    Level: <input type="number" min="0" max="100" id="createLevel" value=""><br>
+    Birthday: <input type="date" id="createBirthday" value=""><br>
+    Banned: <select name="createBanned" id="createBanned">
+        <option id="true" value="true">true</option>
+        <option id="false" value="false">false</option>
+    </select><br><br>
+    <button id="createUserButton" onclick="createUserRequest()" value="Create User"><img id="createUserImage" src="img/save.png"><p><b>Create User</b></p></button>
+</div>
+<hr>
+<button id="button1" onclick="button1()"><img id="editImg1000" src="img/edit.png">button1</button>
 
+</div>
 </body>
 </html>

@@ -1,0 +1,19 @@
+#table1{
+    border:2px solid black;
+    border-collapse: collapse;
+}
+TD, TH {
+    /*padding: 2px; !* Поля вокруг содержимого таблицы *!*/
+    border: 1px solid black; /* Параметры рамки */
+}
+TH{
+    border:2px solid black;
+}
+#countPerPage{
+    /*display: flex;*/
+    list-style: circle;
+}
+img{
+    width: 50%;
+    height: 50%;
+}
